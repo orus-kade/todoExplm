@@ -1,4 +1,4 @@
 todo
 ====
 
-Example of RESTfull application
+Example of RESTful application
