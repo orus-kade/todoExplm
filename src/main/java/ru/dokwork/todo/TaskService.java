@@ -17,7 +17,7 @@ public class TaskService {
      */
     @GET
     @Path("/{id}")
-    public Task get(@PathParam("{id}") UUID id) {
+    public Task get(@PathParam("id") UUID id) {
         return null;
     }
 
@@ -38,10 +38,27 @@ public class TaskService {
      * @param task task with new properties.
      * @return http response.
      */
-    @PATCH
+    @PUT
     @Path("/{id}")
     @Consumes({"application/json"})
-    public void update(@PathParam("{id}") UUID id, Task task) {
+    public void update(@PathParam("id") UUID id, Task task) {
+    }
+
+    /**
+     * Modify properties of the task with specific identifier.
+     *
+     * @param id          identifier of task, that be edited.
+     * @param name        new name.
+     * @param description new description.
+     * @param isCompleted new completed status.
+     */
+    @PATCH
+    @Path("/{id}")
+    public void patch(@PathParam("id") UUID id,
+                      @QueryParam("name") String name,
+                      @QueryParam("description") String description,
+                      @QueryParam("completed") Boolean isCompleted) {
+
     }
 
     /**
@@ -52,18 +69,17 @@ public class TaskService {
      */
     @DELETE
     @Path("/{id}")
-    public void delete(@PathParam("{id}") UUID id) {
+    public void delete(@PathParam("id") UUID id) {
     }
 
     /**
-     * Find task with specific name.
+     * Find all completed or uncompleted tasks.
      *
-     * @param name name of task.
-     * @return task with specific name.
+     * @param isCompleted mark of completed state for search.
+     * @return collection with completed (if argument is true) or uncompleted (if argument is false) tasks.
      */
     @GET
-    @Path("/{find}")
-    public void find(@QueryParam("name") String name) {
+    public Collection<Task> find(@QueryParam("completed") Boolean isCompleted) {
     }
 
     /**
@@ -74,27 +90,5 @@ public class TaskService {
     @GET
     public Collection<Task> getAll() {
         return null;
-    }
-
-    /**
-     * Mark task with specific identifier as done.
-     *
-     * @param id identifier of task.
-     * @return http response.
-     */
-    @PUT
-    @Path("/{id}")
-    public void done(@PathParam("{id}") UUID id) {
-    }
-
-    /**
-     * Mark task with specific identifier as undone.
-     *
-     * @param id identifier of task.
-     * @return http response.
-     */
-    @PUT
-    @Path("/{id}")
-    public void undone(@PathParam("{id}") UUID id) {
     }
 }
