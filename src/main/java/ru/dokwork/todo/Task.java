@@ -1,8 +1,10 @@
 package ru.dokwork.todo;
 
+import java.util.UUID;
+
 public class Task {
 
-    private long id;
+    private UUID id;
 
     private String name;
 
@@ -10,11 +12,11 @@ public class Task {
 
     private boolean isCompleted;
 
-    public long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
@@ -58,7 +60,6 @@ public class Task {
 
         Task task = (Task) o;
 
-        if (id != task.id) return false;
         if (isCompleted != task.isCompleted) return false;
         if (description != null ? !description.equals(task.description) : task.description != null) return false;
         if (name != null ? !name.equals(task.name) : task.name != null) return false;
@@ -68,8 +69,7 @@ public class Task {
 
     @Override
     public int hashCode() {
-        int result = (int) (id ^ (id >>> 32));
-        result = 31 * result + (name != null ? name.hashCode() : 0);
+        int result = name != null ? name.hashCode() : 0;
         result = 31 * result + (description != null ? description.hashCode() : 0);
         result = 31 * result + (isCompleted ? 1 : 0);
         return result;
