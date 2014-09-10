@@ -1,6 +1,10 @@
 package ru.dokwork.todo;
 
+import ru.dokwork.todo.dao.MockTaskDao;
+import ru.dokwork.todo.dao.TaskDao;
+
 import javax.ws.rs.*;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.util.ArrayList;
@@ -12,18 +16,18 @@ import java.util.UUID;
 @Produces({"application/json"})
 public class TaskService {
 
+    private TaskDao dao;
+
     /**
      * Get task by id.
      *
-     * @param id identifier of task
+     * @param uuid identifier of task
      * @return task with specific id.
      */
     @GET
-    @Path("/{id}")
-    public Task get(@PathParam("id") UUID id) {
-        Task task = new Task("get", "success");
-        task.setId(id);
-        return task;
+    @Path("/{uuid}")
+    public Task get(@PathParam("uuid") UUID uuid) {
+        return dao.getByUUID(uuid);
     }
 
     /**
@@ -32,64 +36,98 @@ public class TaskService {
      * @param task new task.
      */
     @POST
-    @Path("/add")
+    @Path("/")
     @Consumes({"application/json"})
     public Response add(Task task) {
-        task.setId(UUID.randomUUID());
-        URI location = URI.create("/tasks/" + task.getId().toString());
+        dao.save(task);
+        URI location = URI.create("/tasks/" + task.getUUID().toString());
         return Response.created(location).build();
     }
-//
-//    /**
-//     * Update task with specific identifier
-//     *
-//     * @param id   identifier of task, that be updated.
-//     * @param task task with new properties.
-//     * @return http response.
-//     */
-//    @PUT
-//    @Path("/{id}")
-//    @Consumes({"application/json"})
-//    public void update(@PathParam("id") UUID id, Task task) {
-//    }
-//
-//    /**
-//     * Modify properties of the task with specific identifier.
-//     *
-//     * @param id          identifier of task, that be edited.
-//     * @param name        new name.
-//     * @param description new description.
-//     * @param isCompleted new completed status.
-//     */
-//    @PATCH
-//    @Path("/{id}")
-//    public void patch(@PathParam("id") UUID id,
-//                      @QueryParam("name") String name,
-//                      @QueryParam("description") String description,
-//                      @QueryParam("completed") Boolean isCompleted) {
-//
-//    }
-//
-//    /**
-//     * Delete task with specific identifier.
-//     *
-//     * @param id identifier of task, that be removed.
-//     * @return http response.
-//     */
-//    @DELETE
-//    @Path("/{id}")
-//    public void delete(@PathParam("id") UUID id) {
-//    }
-//
-//    /**
-//     * Find all completed or uncompleted tasks.
-//     *
-//     * @param isCompleted mark of completed state for search.
-//     * @return collection with completed (if argument is true) or uncompleted (if argument is false) tasks.
-//     */
-//    @GET
-//    public Collection<Task> find(@QueryParam("completed") Boolean isCompleted) {
-//    }
+
+    /**
+     * Update task with specific identifier
+     *
+     * @param uuid identifier of task, that be updated.
+     * @param task task with new properties.
+     * @return http response.
+     */
+    @PUT
+    @Path("/{uuid}")
+    @Consumes({"application/json"})
+    public Response update(@PathParam("uuid") UUID uuid, Task task) {
+        Task originTask = dao.getByUUID(uuid);
+        if (originTask == null) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        originTask.setName(task.getName());
+        originTask.setDescription(task.getDescription());
+        originTask.setCompleted(task.isCompleted());
+        dao.save(originTask);
+        return Response.ok(originTask, MediaType.APPLICATION_JSON_TYPE).build();
+    }
+
+    /**
+     * Modify properties of the task with specific identifier.
+     *
+     * @param uuid          identifier of task, that be edited.
+     * @param name        new name.
+     * @param description new description.
+     * @param isCompleted new completed status.
+     */
+    @PATCH
+    @Path("/{uuid}")
+    public Response patch(@PathParam("uuid") UUID uuid,
+                          @QueryParam("name") String name,
+                          @QueryParam("description") String description,
+                          @QueryParam("completed") Boolean isCompleted) {
+        Task originTask = dao.getByUUID(uuid);
+        if (originTask == null) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+
+        if (name != null) {
+            originTask.setName(name);
+        }
+        if (description != null) {
+            originTask.setDescription(description);
+        }
+        if (isCompleted != null) {
+            originTask.setCompleted(isCompleted);
+        }
+        dao.save(originTask);
+        return Response.ok(originTask, MediaType.APPLICATION_JSON_TYPE).build();
+    }
+
+    /**
+     * Delete task with specific identifier.
+     *
+     * @param uuid identifier of task, that be removed.
+     * @return http response.
+     */
+    @DELETE
+    @Path("/{uuid}")
+    public Response delete(@PathParam("uuid") UUID uuid) {
+        Task originTask = dao.getByUUID(uuid);
+        if (originTask == null) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        dao.remove(originTask);
+        return Response.noContent().build();
+    }
+
+    /**
+     * Find all completed or uncompleted tasks.
+     *
+     * @param isCompleted mark of completed state for search.
+     * @return collection with completed (if argument is true) or uncompleted (if argument is false) tasks.
+     */
+    @GET
+    public Collection<Task> find(@QueryParam("completed") Boolean isCompleted) {
+        if (isCompleted == null) {
+            return null;
+        }
+        return dao.findByStatus(isCompleted);
+    }
 
     /**
      * Get list of all tasks.
@@ -98,10 +136,10 @@ public class TaskService {
      */
     @GET
     public Collection<Task> getAll() {
-        Collection<Task> tasks = new ArrayList<>();
-        tasks.add(new Task());
-        tasks.add(new Task());
-        tasks.add(new Task());
-        return tasks;
+        return dao.getAll();
+    }
+
+    public TaskService() {
+        dao = new MockTaskDao();
     }
 }

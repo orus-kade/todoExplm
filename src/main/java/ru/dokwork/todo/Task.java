@@ -4,7 +4,7 @@ import java.util.UUID;
 
 public class Task {
 
-    private UUID id;
+    private UUID uuid;
 
     private String name;
 
@@ -12,12 +12,12 @@ public class Task {
 
     private boolean isCompleted;
 
-    public UUID getId() {
-        return id;
+    public UUID getUUID() {
+        return uuid;
     }
 
-    public void setId(UUID id) {
-        this.id = id;
+    public void setUUID(UUID uuid) {
+        this.uuid = uuid;
     }
 
     public String getName() {
@@ -78,7 +78,7 @@ public class Task {
     @Override
     public String toString() {
         return "Task{" +
-                "id=" + id +
+                "uuid=" + uuid +
                 ", name='" + name + '\'' +
                 ", description='" + description + '\'' +
                 ", isCompleted=" + isCompleted +

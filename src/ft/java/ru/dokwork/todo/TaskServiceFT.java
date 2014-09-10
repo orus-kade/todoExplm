@@ -1,37 +1,27 @@
 package ru.dokwork.todo;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.fluent.Request;
-import org.apache.http.client.fluent.Response;
 import org.apache.http.entity.ContentType;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.BufferedOutputStream;
-import java.util.UUID;
-
-import static org.junit.Assert.*;
-
 public class TaskServiceFT {
 
     private static final String URL = "http://localhost:8080/todo/tasks/";
 
-    Gson gson;
     JsonParser parser;
 
     @Before
     public void setUp() throws Exception {
-        gson = new Gson();
         parser = new JsonParser();
     }
 
     @Test
-    public void testGet() throws Exception {
+    public void testAddNewTask() throws Exception {
         String name = "Name of the task";
         String description = "Description of the task";
         String jtask = new JsonBuilder()
@@ -39,7 +29,7 @@ public class TaskServiceFT {
                 .addProperty("description", description)
                 .toString();
 
-        HttpResponse response = Request.Post(URL + "add")
+        HttpResponse response = Request.Post(URL)
                 .bodyString(jtask, ContentType.APPLICATION_JSON)
                 .execute()
                 .returnResponse();
@@ -49,6 +39,31 @@ public class TaskServiceFT {
         Assert.assertNotNull(response.getHeaders("location"));
         Assert.assertEquals(1, response.getHeaders("location").length);
         System.out.println(response.getHeaders("location")[0]);
+    }
+
+    @Test
+    public void testGetTask() throws Exception {
+        String name = "Name of the task";
+        String description = "Description of the task";
+        JsonObject jtask = new JsonBuilder()
+                .addProperty("name", name)
+                .addProperty("description", description)
+                .toJsonObject();
+        HttpResponse response = Request.Post(URL)
+                .bodyString(jtask.toString(), ContentType.APPLICATION_JSON)
+                .execute()
+                .returnResponse();
+
+        String newUrl = response.getFirstHeader("location").getValue();
+        String answer = Request.Get(newUrl).execute().returnContent().asString();
+
+        Assert.assertFalse("Answer is empty.", answer.isEmpty());
+
+        jtask = parser.parse(answer).getAsJsonObject();
+        Assert.assertTrue("Answer have a wrong UUID", newUrl.endsWith(jtask.get("uuid").getAsString()));
+        Assert.assertEquals("Answer have a wrong name", name, jtask.get("name").getAsString());
+        Assert.assertEquals("Answer have a wrong description", description, jtask.get("description").getAsString());
+        Assert.assertFalse("Answer have a wrong status", Boolean.getBoolean(jtask.get("completed").getAsString()));
     }
 
     class JsonBuilder {
@@ -62,6 +77,10 @@ public class TaskServiceFT {
         @Override
         public String toString() {
             return object.toString();
+        }
+
+        public JsonObject toJsonObject() {
+            return object;
         }
 
         JsonBuilder() {
