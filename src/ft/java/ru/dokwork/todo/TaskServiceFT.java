@@ -6,9 +6,9 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.fluent.Request;
+import org.apache.http.client.fluent.Response;
 import org.apache.http.entity.ContentType;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -18,57 +18,55 @@ public class TaskServiceFT {
 
     private static final String URL = "http://localhost:8080/todo/tasks/";
 
-    JsonParser parser;
+    static final JsonParser parser;
 
-    @Before
-    public void setUp() throws Exception {
+    static final JsonObject jtask1;
+
+    static final JsonObject jtask2;
+
+    static {
         parser = new JsonParser();
+
+        jtask1 = new JsonObject();
+        jtask1.addProperty("name", "First task");
+        jtask1.addProperty("description", "First task for test.");
+
+        jtask2 = new JsonObject();
+        jtask2.addProperty("name", "Second task");
+        jtask2.addProperty("description", "Second task for test.");
     }
 
     @Test
-    public void testAddNewTask() throws Exception {
-        String name = "Name of the task";
-        String description = "Description of the task";
-        String jtask = new JsonBuilder()
-                .addProperty("name", name)
-                .addProperty("description", description)
-                .toString();
+    public void functionalTest() throws Exception {
+        // Add first task
+        Response response = addNewTask(jtask1);
 
-        HttpResponse response = Request.Post(URL)
-                .bodyString(jtask, ContentType.APPLICATION_JSON)
-                .execute()
-                .returnResponse();
+        // Check answer
+        ResponseChecker.assertFor(response).codeEqual(201).haveHeader("location", 1);
 
-        Assert.assertEquals("Wrong code after add new task by POST",
-                201, response.getStatusLine().getStatusCode());
-        Assert.assertNotNull(response.getHeaders("location"));
-        Assert.assertEquals(1, response.getHeaders("location").length);
-        System.out.println(response.getHeaders("location")[0]);
+//        // Get first task
+//        UUID uuid = UUID.fromString(httpResponse.getFirstHeader("location").getValue().substring(URL.length()));
+//        String answer = getTask(uuid).returnContent().asString();
+//
+//        // Check answer
+//        Assert.assertFalse("Answer is empty.", answer.isEmpty());
+//
+//        JsonObject jtask = parser.parse(answer).getAsJsonObject();
+//        Assert.assertEquals("Answer have a wrong UUID", uuid.toString(), jtask.get("uuid").getAsString());
+//        Assert.assertEquals("Answer have a wrong name", jtask1.get("name"), jtask.get("name"));
+//        Assert.assertEquals("Answer have a wrong description", jtask1.get("description"), jtask.get("description"));
+//        Assert.assertFalse("Answer have a wrong status", Boolean.getBoolean(jtask.get("completed").getAsString()));
     }
 
-    @Test
-    public void testGetTask() throws Exception {
-        String name = "Name of the task";
-        String description = "Description of the task";
-        JsonObject jtask = new JsonBuilder()
-                .addProperty("name", name)
-                .addProperty("description", description)
-                .toJsonObject();
-        HttpResponse response = Request.Post(URL)
+    public Response addNewTask(JsonObject jtask) throws Exception {
+        return Request.Post(URL)
                 .bodyString(jtask.toString(), ContentType.APPLICATION_JSON)
-                .execute()
-                .returnResponse();
+                .execute();
+    }
 
-        String newUrl = response.getFirstHeader("location").getValue();
-        String answer = Request.Get(newUrl).execute().returnContent().asString();
-
-        Assert.assertFalse("Answer is empty.", answer.isEmpty());
-
-        jtask = parser.parse(answer).getAsJsonObject();
-        Assert.assertTrue("Answer have a wrong UUID", newUrl.endsWith(jtask.get("uuid").getAsString()));
-        Assert.assertEquals("Answer have a wrong name", name, jtask.get("name").getAsString());
-        Assert.assertEquals("Answer have a wrong description", description, jtask.get("description").getAsString());
-        Assert.assertFalse("Answer have a wrong status", Boolean.getBoolean(jtask.get("completed").getAsString()));
+    public Response getTask(UUID uuid) throws Exception {
+        String newUrl = URL + uuid.toString();
+        return Request.Get(newUrl).execute();
     }
 
     @Test
@@ -121,7 +119,7 @@ public class TaskServiceFT {
         Assert.assertEquals("Incorrect difference.", 1, countBefore - countAfter);
     }
 
-    class JsonBuilder {
+    static class JsonBuilder {
         JsonObject object;
 
         JsonBuilder addProperty(String name, String value) {
@@ -140,6 +138,32 @@ public class TaskServiceFT {
 
         JsonBuilder() {
             this.object = new JsonObject();
+        }
+    }
+
+    static class ResponseChecker {
+        HttpResponse response;
+//        String content;
+
+        static ResponseChecker assertFor(Response response) throws IOException {
+            return new ResponseChecker(response);
+        }
+
+        ResponseChecker codeEqual(int expectedCode) {
+            Assert.assertEquals("Wrong code.", expectedCode, response.getStatusLine().getStatusCode());
+            return this;
+        }
+
+        ResponseChecker haveHeader(String headerName, int count) {
+            Assert.assertNotNull(response.getHeaders(headerName));
+            Assert.assertEquals(count, response.getHeaders(headerName).length);
+            return this;
+        }
+
+        ResponseChecker(Response response) throws IOException {
+            this.response = response.returnResponse();
+//            this.content = response.returnContent().asString();
+            response.returnResponse().getEntity().getContent()
         }
     }
 }
