@@ -1,5 +1,7 @@
 package ru.dokwork.todo;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.http.HttpResponse;
@@ -8,6 +10,9 @@ import org.apache.http.entity.ContentType;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.util.UUID;
 
 public class TaskServiceFT {
 
@@ -64,6 +69,56 @@ public class TaskServiceFT {
         Assert.assertEquals("Answer have a wrong name", name, jtask.get("name").getAsString());
         Assert.assertEquals("Answer have a wrong description", description, jtask.get("description").getAsString());
         Assert.assertFalse("Answer have a wrong status", Boolean.getBoolean(jtask.get("completed").getAsString()));
+    }
+
+    @Test
+    public void testGetAll() throws Exception {
+        int N = 5;
+        for (int i = 0; i < N; i++) {
+            JsonObject jtask = new JsonBuilder()
+                    .addProperty("name", UUID.randomUUID().toString())
+                    .addProperty("description", UUID.randomUUID().toString())
+                    .toJsonObject();
+            Request.Post(URL)
+                    .bodyString(jtask.toString(), ContentType.APPLICATION_JSON)
+                    .execute();
+        }
+        String answer = Request.Get(URL)
+                .execute()
+                .returnContent().asString();
+        JsonElement jsonElement = parser.parse(answer);
+        Assert.assertTrue("Answer is not json array.", jsonElement.isJsonArray());
+        Assert.assertTrue("Wrong count elements in answer.", jsonElement.getAsJsonArray().size() >= N);
+    }
+
+    @Test
+    public void testDelete() throws IOException {
+        JsonObject jtask = new JsonBuilder()
+                .addProperty("name", UUID.randomUUID().toString())
+                .addProperty("description", UUID.randomUUID().toString())
+                .toJsonObject();
+        Request.Post(URL)
+                .bodyString(jtask.toString(), ContentType.APPLICATION_JSON)
+                .execute();
+        String allTasks = Request.Get(URL)
+                .execute()
+                .returnContent().asString();
+        JsonArray elements = parser.parse(allTasks).getAsJsonArray();
+        int countBefore = elements.size();
+
+        jtask = elements.get(0).getAsJsonObject();
+        HttpResponse response = Request.Delete(URL + jtask.get("uuid").getAsString())
+                .execute()
+                .returnResponse();
+
+        allTasks = Request.Get(URL)
+                .execute()
+                .returnContent().asString();
+        elements = parser.parse(allTasks).getAsJsonArray();
+        int countAfter = elements.size();
+
+        Assert.assertEquals("Wrong code.", 204, response.getStatusLine().getStatusCode());
+        Assert.assertEquals("Incorrect difference.", 1, countBefore - countAfter);
     }
 
     class JsonBuilder {

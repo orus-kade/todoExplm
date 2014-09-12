@@ -1,6 +1,4 @@
-package methods;
-
-import org.apache.http.client.methods.HttpPost;
+package org.apache.http.client.methods;
 
 import java.net.URI;
 

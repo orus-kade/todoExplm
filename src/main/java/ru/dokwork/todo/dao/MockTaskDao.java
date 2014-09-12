@@ -26,7 +26,7 @@ public class MockTaskDao implements TaskDao {
 
     @Override
     public void remove(Task task) {
-        tasks.remove(task);
+        tasks.remove(task.getUUID());
     }
 
     @Override
