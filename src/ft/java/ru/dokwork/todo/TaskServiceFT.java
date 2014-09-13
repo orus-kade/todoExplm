@@ -9,10 +9,10 @@ import org.apache.http.client.fluent.Request;
 import org.apache.http.entity.ContentType;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.UUID;
 
 public class TaskServiceFT {
@@ -37,15 +37,16 @@ public class TaskServiceFT {
         parser = new JsonParser();
     }
 
-    @After
-    public void tearDown() throws Exception {
+    @Before
+    public void setup() throws Exception {
         HttpResponse httpResponse = getAll();
-        JsonArray array = parser.parse(ResponseChecker.readResponseToSring(httpResponse)).getAsJsonArray();
+        JsonArray array = parser.parse(readResponseToSring(httpResponse)).getAsJsonArray();
         for (JsonElement jsonElement : array) {
             JsonObject jtask = jsonElement.getAsJsonObject();
             delete(UUID.fromString(jtask.get("uuid").getAsString()));
         }
-        Assert.assertTrue(ResponseChecker.readResponseToSring(getAll()).isEmpty());
+        array = parser.parse(readResponseToSring(getAll())).getAsJsonArray();
+        Assert.assertEquals(0, array.size());
     }
 
     @Test
@@ -53,20 +54,20 @@ public class TaskServiceFT {
         // Add first task
         HttpResponse response = addNewTask(jtask1);
         // Check answer
-        ResponseChecker.assertFor(response).codeEqual(201).haveHeaders("location", 1);
+        ResponseChecker.assertThat(response).haveCode(201).haveHeaders("location", 1);
         String uuid1 = response.getFirstHeader("location").getValue().substring(URL.length());
 
         // Get first task
         response = getTask(UUID.fromString(uuid1));
-        String answer = ResponseChecker.readResponseToSring(response);
+        String answer = readResponseToSring(response);
         // Check answer
         JsonObject expectedObject = createJsonTask(uuid1, jtask1);
-        ResponseChecker.assertFor(response).codeEqual(200).contentIs(expectedObject);
+        ResponseChecker.assertThat(response).haveCode(200).haveContent(expectedObject);
 
         // Add second task
         response = addNewTask(jtask2);
         // Check answer
-        ResponseChecker.assertFor(response).codeEqual(201).haveHeaders("location", 1);
+        ResponseChecker.assertThat(response).haveCode(201).haveHeaders("location", 1);
         String uuid2 = response.getFirstHeader("location").getValue().substring(URL.length());
 
         // Get all tasks
@@ -75,7 +76,7 @@ public class TaskServiceFT {
         JsonArray array = new JsonArray();
         array.add(createJsonTask(uuid1, jtask1));
         array.add(createJsonTask(uuid2, jtask2));
-        ResponseChecker.assertFor(response).codeEqual(200).contentIs(array);
+        ResponseChecker.assertThat(response).haveCode(200).haveContent(array);
     }
 
     public HttpResponse addNewTask(JsonObject jtask) throws Exception {
@@ -109,59 +110,8 @@ public class TaskServiceFT {
         return expectedObject;
     }
 
-    static class ResponseChecker {
-
-        public static String readResponseToSring(HttpResponse response) throws IOException {
-            java.util.Scanner s = new java.util.Scanner(response.getEntity().getContent()).useDelimiter("\\A");
-            return s.hasNext() ? s.next() : "";
-        }
-
-        HttpResponse response;
-        String content;
-        JsonParser parser;
-
-        static ResponseChecker assertFor(HttpResponse response) throws IOException {
-            return new ResponseChecker(response);
-        }
-
-        ResponseChecker codeEqual(int expectedCode) {
-            Assert.assertEquals("Wrong code.", expectedCode, response.getStatusLine().getStatusCode());
-            return this;
-        }
-
-        ResponseChecker haveHeaders(String headerName, int count) {
-            Assert.assertNotNull(response.getHeaders(headerName));
-            Assert.assertEquals(count, response.getHeaders(headerName).length);
-            return this;
-        }
-
-        ResponseChecker contentIs(JsonObject expectedContent) {
-            Assert.assertFalse("Content is empty.", content.isEmpty());
-            JsonObject jcontent = parser.parse(content).getAsJsonObject();
-            Assert.assertEquals("Wrong content.", expectedContent, jcontent);
-            return this;
-        }
-
-        ResponseChecker contentIs(JsonArray expectedContent) {
-            Assert.assertFalse("Content is empty.", content.isEmpty());
-            JsonArray jcontent = parser.parse(content).getAsJsonArray();
-            Assert.assertEquals("Wrong array size.", expectedContent.size(), jcontent.size());
-            HashSet actual = new HashSet();
-            for (JsonElement jsonElement : jcontent) {
-                actual.add(jsonElement);
-            }
-            HashSet expected = new HashSet();
-            for (JsonElement jsonElement : expectedContent) {
-                expected.add(jsonElement);
-            }
-            Assert.assertTrue("Arrays not equals.", expected.contains(actual));
-            return this;
-        }
-
-        ResponseChecker(HttpResponse response) throws IOException {
-            this.response = response;
-            this.content = readResponseToSring(response);
-            this.parser = new JsonParser();
-        }
+    private static String readResponseToSring(HttpResponse response) throws IOException {
+        java.util.Scanner s = new java.util.Scanner(response.getEntity().getContent()).useDelimiter("\\A");
+        return s.hasNext() ? s.next() : "";
     }
 }
