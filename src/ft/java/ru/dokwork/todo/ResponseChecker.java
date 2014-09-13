@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 
 import java.io.IOException;
@@ -32,7 +33,7 @@ public class ResponseChecker {
      * Create assertions for http response.
      *
      * @param response
-     * @return
+     * @return {@link ResponseChecker}
      * @throws IOException
      */
     public static ResponseChecker assertThat(HttpResponse response) throws IOException {
@@ -53,6 +54,13 @@ public class ResponseChecker {
         return this;
     }
 
+    /**
+     * Assert that response have headers.
+     *
+     * @param headerName    name of header.
+     * @param expectedCount expected headers count.
+     * @return {@link ResponseChecker}
+     */
     public ResponseChecker haveHeaders(String headerName, int expectedCount) {
         if (response.getHeaders(headerName) == null) {
             throw new WronAssertionException(String.format(HEADER_NOT_FOUND, headerName));
@@ -65,6 +73,12 @@ public class ResponseChecker {
         return this;
     }
 
+    /**
+     * Assert that response have content equals to json object.
+     *
+     * @param expectedContent expected json object in response content.
+     * @return {@link ResponseChecker}
+     */
     public ResponseChecker haveContent(JsonObject expectedContent) {
         if (content.isEmpty()) {
             throw new WronAssertionException(EMPTY_CONTENT);
@@ -76,6 +90,12 @@ public class ResponseChecker {
         return this;
     }
 
+    /**
+     * Assert that response have content equals to json array.
+     *
+     * @param expectedContent expected json array in response content.
+     * @return {@link ResponseChecker}
+     */
     public ResponseChecker haveContent(JsonArray expectedContent) {
         if (content.isEmpty()) {
             throw new WronAssertionException(EMPTY_CONTENT);
@@ -110,7 +130,11 @@ public class ResponseChecker {
     }
 
     private static String readResponseToSring(HttpResponse response) throws IOException {
-        java.util.Scanner s = new java.util.Scanner(response.getEntity().getContent()).useDelimiter("\\A");
+        HttpEntity entity = response.getEntity();
+        if (entity == null) {
+            return null;
+        }
+        java.util.Scanner s = new java.util.Scanner(entity.getContent()).useDelimiter("\\A");
         return s.hasNext() ? s.next() : "";
     }
 }

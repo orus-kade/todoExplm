@@ -23,7 +23,9 @@ public class TaskServiceFT {
 
     static final JsonObject jtask2;
 
-    static final JsonParser parser;
+    JsonParser parser;
+
+    TaskServiceClient todo;
 
     static {
         jtask1 = new JsonObject();
@@ -33,72 +35,72 @@ public class TaskServiceFT {
         jtask2 = new JsonObject();
         jtask2.addProperty("name", "Second task");
         jtask2.addProperty("description", "Second task for test.");
-
-        parser = new JsonParser();
     }
 
     @Before
     public void setup() throws Exception {
-        HttpResponse httpResponse = getAll();
-        JsonArray array = parser.parse(readResponseToSring(httpResponse)).getAsJsonArray();
-        for (JsonElement jsonElement : array) {
-            JsonObject jtask = jsonElement.getAsJsonObject();
-            delete(UUID.fromString(jtask.get("uuid").getAsString()));
-        }
-        array = parser.parse(readResponseToSring(getAll())).getAsJsonArray();
-        Assert.assertEquals(0, array.size());
+        parser = new JsonParser();
+        todo = new TaskServiceClient(URL);
+        removeAllExistingTasks();
     }
 
     @Test
     public void functionalTest() throws Exception {
         // Add first task
-        HttpResponse response = addNewTask(jtask1);
+        HttpResponse response = todo.addNewTask(jtask1);
         // Check answer
         ResponseChecker.assertThat(response).haveCode(201).haveHeaders("location", 1);
         String uuid1 = response.getFirstHeader("location").getValue().substring(URL.length());
 
         // Get first task
-        response = getTask(UUID.fromString(uuid1));
-        String answer = readResponseToSring(response);
-        // Check answer
+        response = todo.getTask(UUID.fromString(uuid1));
+        // Create expected json
         JsonObject expectedObject = createJsonTask(uuid1, jtask1);
+        // Check answer
         ResponseChecker.assertThat(response).haveCode(200).haveContent(expectedObject);
 
         // Add second task
-        response = addNewTask(jtask2);
+        response = todo.addNewTask(jtask2);
         // Check answer
         ResponseChecker.assertThat(response).haveCode(201).haveHeaders("location", 1);
         String uuid2 = response.getFirstHeader("location").getValue().substring(URL.length());
 
         // Get all tasks
-        response = getAll();
-        // Check answer
+        response = todo.getAll();
+        // Expected array
         JsonArray array = new JsonArray();
         array.add(createJsonTask(uuid1, jtask1));
         array.add(createJsonTask(uuid2, jtask2));
+        // Check answer
         ResponseChecker.assertThat(response).haveCode(200).haveContent(array);
+
+        // Delete task
+        int countBefore = getTasksCount();
+        response = todo.delete(UUID.fromString(uuid2));
+        // Check answer
+        ResponseChecker.assertThat(response).haveCode(204);
+        int countAfter = getTasksCount();
+        Assert.assertEquals(1, countBefore - countAfter);
     }
 
-    public HttpResponse addNewTask(JsonObject jtask) throws Exception {
-        return Request.Post(URL)
-                .bodyString(jtask.toString(), ContentType.APPLICATION_JSON)
-                .execute().returnResponse();
+    private int getTasksCount() throws Exception {
+        return parser.parse(readResponseToSring(todo.getAll())).getAsJsonArray().size();
     }
 
-    public HttpResponse getTask(UUID uuid) throws Exception {
-        String newUrl = URL + uuid.toString();
-        return Request.Get(newUrl).execute().returnResponse();
+    private void removeAllExistingTasks() throws Exception {
+        HttpResponse httpResponse = todo.getAll();
+        JsonArray array = parser.parse(readResponseToSring(httpResponse)).getAsJsonArray();
+        for (JsonElement jsonElement : array) {
+            JsonObject jtask = jsonElement.getAsJsonObject();
+            todo.delete(UUID.fromString(jtask.get("uuid").getAsString()));
+        }
+        array = parser.parse(readResponseToSring(todo.getAll())).getAsJsonArray();
+        Assert.assertEquals(0, array.size());
     }
 
-    public HttpResponse getAll() throws Exception {
-        return Request.Get(URL)
-                .execute().returnResponse();
-    }
-
-    public HttpResponse delete(UUID uuid) throws IOException {
-        return Request.Delete(URL + uuid.toString())
-                .execute()
-                .returnResponse();
+    private static String readResponseToSring(HttpResponse response) throws IOException {
+        java.util.Scanner s = new java.util.Scanner(response.getEntity().getContent()).useDelimiter("\\A");
+        return s.hasNext() ? s.next() : "";
     }
 
     private JsonObject createJsonTask(String uuid, JsonObject pattern) {
@@ -108,10 +110,5 @@ public class TaskServiceFT {
         expectedObject.add("description", pattern.get("description"));
         expectedObject.add("completed", parser.parse("false"));
         return expectedObject;
-    }
-
-    private static String readResponseToSring(HttpResponse response) throws IOException {
-        java.util.Scanner s = new java.util.Scanner(response.getEntity().getContent()).useDelimiter("\\A");
-        return s.hasNext() ? s.next() : "";
     }
 }
