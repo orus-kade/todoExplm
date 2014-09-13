@@ -5,11 +5,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.fluent.Request;
-import org.apache.http.entity.ContentType;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -37,7 +35,7 @@ public class TaskServiceFT {
         jtask2.addProperty("description", "Second task for test.");
     }
 
-    @Before
+    @BeforeClass
     public void setup() throws Exception {
         parser = new JsonParser();
         todo = new TaskServiceClient(URL);
@@ -73,6 +71,14 @@ public class TaskServiceFT {
         array.add(createJsonTask(uuid2, jtask2));
         // Check answer
         ResponseChecker.assertThat(response).haveCode(200).haveContent(array);
+
+        // Patch state for first task
+        response = todo.patch(UUID.fromString(uuid1), null, null, true);
+        // Create expected json
+        expectedObject = createJsonTask(uuid1, jtask1);
+        expectedObject.addProperty("completed", true);
+        // Check answer
+        ResponseChecker.assertThat(response).haveCode(200).haveContent(expectedObject);
 
         // Delete task
         int countBefore = getTasksCount();
