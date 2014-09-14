@@ -125,11 +125,11 @@ public class ResponseChecker {
 
     private ResponseChecker(HttpResponse response) throws IOException {
         this.response = response;
-        this.content = readResponseToSring(response);
+        this.content = readResponseToString(response);
         this.parser = new JsonParser();
     }
 
-    private static String readResponseToSring(HttpResponse response) throws IOException {
+    private static String readResponseToString(HttpResponse response) throws IOException {
         HttpEntity entity = response.getEntity();
         if (entity == null) {
             return null;

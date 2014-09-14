@@ -56,14 +56,21 @@ public class TaskService {
     @Consumes({"application/json"})
     public Response update(@PathParam("uuid") UUID uuid, Task task) {
         Task originTask = dao.getByUUID(uuid);
-        if (originTask == null) {
-            return Response.status(Response.Status.NOT_FOUND).build();
+        boolean isNewTask = originTask == null;
+        if (isNewTask) {
+            originTask = new Task();
+            originTask.setUUID(uuid);
         }
         originTask.setName(task.getName());
         originTask.setDescription(task.getDescription());
         originTask.setCompleted(task.isCompleted());
         dao.save(originTask);
-        return Response.ok(originTask, MediaType.APPLICATION_JSON_TYPE).build();
+        URI location = URI.create("/tasks/" + task.getUUID());
+        if (isNewTask) {
+            return Response.created(location).build();
+        } else {
+            return Response.noContent().location(location).build();
+        }
     }
 
     /**
@@ -95,7 +102,8 @@ public class TaskService {
             originTask.setCompleted(isCompleted);
         }
         dao.save(originTask);
-        return Response.ok(originTask, MediaType.APPLICATION_JSON_TYPE).build();
+        URI location = URI.create("/tasks/" + uuid);
+        return Response.noContent().location(location).build();
     }
 
     /**
