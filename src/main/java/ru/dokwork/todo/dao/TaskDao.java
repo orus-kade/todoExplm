@@ -5,9 +5,6 @@ import ru.dokwork.todo.Task;
 import java.util.Collection;
 import java.util.UUID;
 
-/**
- * TODO: Comment this
- */
 public interface TaskDao {
 
     public Task getByUUID(UUID uuid);

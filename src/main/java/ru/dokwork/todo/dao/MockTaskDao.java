@@ -5,7 +5,7 @@ import ru.dokwork.todo.Task;
 import java.util.*;
 
 /**
- * // TODO: Comment this
+ * Simple realisation of {@link TaskDao}.
  */
 public class MockTaskDao implements TaskDao {
 
