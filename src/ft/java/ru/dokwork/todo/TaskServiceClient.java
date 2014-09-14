@@ -11,7 +11,6 @@ import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.HttpClients;
-import org.junit.Assert;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -70,12 +69,12 @@ public class TaskServiceClient {
     }
 
     public int getTasksCount() throws IOException {
-        return parser.parse(readResponseToSring(getAll())).getAsJsonArray().size();
+        return parser.parse(readResponseToString(getAll())).getAsJsonArray().size();
     }
 
     public void removeAllExistingTasks() throws IOException {
         HttpResponse httpResponse = getAll();
-        JsonArray array = parser.parse(readResponseToSring(httpResponse)).getAsJsonArray();
+        JsonArray array = parser.parse(readResponseToString(httpResponse)).getAsJsonArray();
         for (JsonElement jsonElement : array) {
             JsonObject jtask = jsonElement.getAsJsonObject();
             delete(UUID.fromString(jtask.get("uuid").getAsString()));
@@ -87,7 +86,7 @@ public class TaskServiceClient {
         parser = new JsonParser();
     }
 
-    private static String readResponseToSring(HttpResponse response) throws IOException {
+    private static String readResponseToString(HttpResponse response) throws IOException {
         java.util.Scanner s = new java.util.Scanner(response.getEntity().getContent()).useDelimiter("\\A");
         return s.hasNext() ? s.next() : "";
     }
